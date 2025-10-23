@@ -3,437 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Blog Management</title>
-
+    <title>Blog Data Creator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
-    <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Tailwind gray-100 */
-        }
-        
-        /* App View Management */
-        .app-view {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .app-view.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Sidebar Styles */
-        .sidebar-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            color: #d1d5db; /* gray-300 */
-            font-weight: 500;
-            transition: all 0.2s ease-in-out;
-        }
-        .sidebar-link:hover {
-            background-color: #374151; /* gray-700 */
-            color: white;
-        }
-        .sidebar-link.active {
-            background-color: #4f46e5; /* indigo-600 */
-            color: white;
-            font-weight: 600;
-        }
-
-        /* Quill Editor Height */
-        #quill-editor {
-            min-height: 250px;
-            background-color: white;
-        }
-        
-        /* Tagify Customization */
-        .tagify {
-            --tag-bg: #e0e7ff; /* indigo-100 */
-            --tag-text-color: #3730a3; /* indigo-800 */
-            border: 1px solid #d1d5db; /* gray-300 */
-            border-radius: 0.5rem;
-        }
-        
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.open {
-            display: flex;
-        }
-        .modal-content {
-            animation: zoomIn 0.2s ease-out;
-        }
-        @keyframes zoomIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        /* Toast Notification */
-        #toast {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            color: white;
-            font-weight: 600;
-            z-index: 2000;
-            transition: all 0.3s ease-in-out;
-        }
-        #toast.show {
-            bottom: 20px;
-        }
-        .toast-success { background-color: #10b981; }
-        .toast-error { background-color: #ef4444; }
+        body { display: grid; place-items: center; min-height: 100vh; background-color: #f3f4f6; }
+        .btn { padding: 1rem 2rem; font-size: 1.25rem; font-weight: 600; border-radius: 0.5rem; cursor: pointer; }
+        #log { margin-top: 1rem; padding: 1rem; background: white; border-radius: 0.5rem; width: 500px; height: 200px; overflow-y: auto; font-family: monospace; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
-
-    <aside class="w-64 flex-shrink-0 bg-gray-800 text-white flex flex-col h-full">
-        <div class="h-16 flex items-center justify-center px-4 font-bold text-xl border-b border-gray-700">
-            Blog Management
-        </div>
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <a href="#" class="sidebar-link active" data-view="list-posts">
-                <i data-lucide="layout-list" class="w-5 h-5 mr-3"></i> All Posts
-            </a>
-            <a href="#" class="sidebar-link" data-view="add-post">
-                <i data-lucide="plus-square" class="w-5 h-5 mr-3"></i> Add New Post
-            </a>
-            <a href="#" class="sidebar-link" data-view="comments">
-                <i data-lucide="messages-square" class="w-5 h-5 mr-3"></i> Comments
-            </a>
-            <a href="#" class="sidebar-link" data-view="analytics">
-                <i data-lucide="bar-chart-3" class="w-5 h-5 mr-3"></i> Analytics
-            </a>
-        </nav>
-    </aside>
-
-    <main class="flex-1 overflow-y-auto p-6 md:p-10">
-        
-        <div id="list-posts" class="app-view active">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800">All Posts</h1>
-                <button id="add-new-post-btn-main" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center hover:bg-indigo-700 transition-colors">
-                    <i data-lucide="plus" class="w-5 h-5 mr-2"></i> Add New Post
-                </button>
-            </div>
-            
-            <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="search-posts" placeholder="Search posts..." class="md:col-span-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    
-                    <select id="filter-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">All Categories</option>
-                        <option value="Technology">Technology</option>
-                        <option value="Guides">Guides</option>
-                        <option value="News">News</option>
-                    </select>
-                    
-                    <select id="filter-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">All Statuses</option>
-                        <option value="Published">Published</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Scheduled">Scheduled</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th class="p-4 w-12 text-left"><input type="checkbox" id="select-all-posts"></th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Title</th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Author</th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Published</th>
-                                <th class="p-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="posts-table-body" class="divide-y divide-gray-200">
-                            <tr><td colspan="7" class="p-8 text-center text-gray-500">Loading posts from Firebase...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="post-form" class="app-view">
-            <h1 id="form-title" class="text-3xl font-bold text-gray-800 mb-6">Add New Post</h1>
-            
-            <form id="blog-post-form">
-                <input type="hidden" id="post-id">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <label for="post-title" class="block text-lg font-semibold text-gray-700 mb-2">Title</label>
-                            <input type="text" id="post-title" placeholder="Your Post Title" class="w-full text-2xl font-bold px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-
-                        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                            <div class="p-6 border-b">
-                                <label class="block text-lg font-semibold text-gray-700">Content</label>
-                            </div>
-                            <div id="quill-editor"></div>
-                        </div>
-                        
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <label class="block text-lg font-semibold text-gray-700 mb-2">Attachments</label>
-                            <div id="attachment-dropzone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 bg-gray-50">
-                                <i data-lucide="paperclip" class="w-10 h-10 mx-auto text-gray-400"></i>
-                                <p class="mt-2 text-gray-500">Drop files (PDF, ZIP, etc.) here or click to upload</p>
-                                <input type="file" class="hidden" id="post-attachments" multiple>
-                            </div>
-                            <div id="attachment-list" class="mt-4 space-y-2">
-                                </div>
-                        </div>
-
-                        <details class="bg-white rounded-lg shadow-sm">
-                            <summary class="p-6 cursor-pointer text-lg font-semibold text-gray-700 flex justify-between items-center">
-                                SEO Metadata (Optional)
-                                <i data-lucide="chevron-down" class="w-5 h-5 transform transition-transform"></i>
-                            </summary>
-                            <div class="p-6 border-t space-y-4">
-                                <div>
-                                    <label for="seo-title" class="block text-sm font-medium text-gray-700">Meta Title</label>
-                                    <input type="text" id="seo-title" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label for="seo-description" class="block text-sm font-medium text-gray-700">Meta Description</label>
-                                    <textarea id="seo-description" rows="3" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-                                </div>
-                                <div>
-                                    <label for="seo-keywords" class="block text-sm font-medium text-gray-700">Keywords (comma-separated)</label>
-                                    <input type="text" id="seo-keywords" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                            </div>
-                        </details>
-                    </div>
-
-                    <div class="lg:col-span-1 space-y-6">
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-3">Publish</h2>
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="post-status" class="block text-sm font-medium text-gray-700">Status</label>
-                                    <select id="post-status" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                        <option value="Draft">Draft</option>
-                                        <option value="Published">Published</option>
-                                        <option value="Scheduled">Scheduled</option>
-                                    </select>
-                                </div>
-                                <div id="schedule-date-wrapper" class="hidden">
-                                    <label for="post-schedule-date" class="block text-sm font-medium text-gray-700">Schedule Date</label>
-                                    <input type="text" id="post-schedule-date" placeholder="Select date and time" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center mt-6 pt-4 border-t">
-                                <button type="button" id="save-draft-btn" class="text-gray-600 font-medium hover:text-indigo-600">Save Draft</button>
-                                <button type="submit" id="publish-btn" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
-                                    Publish
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Category</h2>
-                            <select id="post-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Uncategorized">Uncategorized</option>
-                                <option value="Technology">Technology</option>
-                                <option value="Guides">Guides</option>
-                                <option value="News">News</option>
-                                <option value="Lifestyle">Lifestyle</option>
-                            </select>
-                        </div>
-                        
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Tags</h2>
-                            <input id="post-tags" placeholder="Add tags...">
-                        </div>
-
-                        <div class="bg-white p-6 rounded-lg shadow-sm">
-                            <h2 class="text-lg font-semibold text-gray-700 mb-4">Feature Image</h2>
-                            <div id="image-dropzone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 bg-gray-50">
-                                <i data-lucide="image" class="w-10 h-10 mx-auto text-gray-400"></i>
-                                <p class="mt-2 text-gray-500">Drop image here or click to upload</p>
-                                <input type="file" class="hidden" id="post-image" accept="image/*">
-                            </div>
-                            <div id="image-preview-wrapper" class="mt-4 hidden">
-                                <img id="image-preview" src="#" alt="Image Preview" class="w-full h-auto rounded-lg">
-                                <button type="button" id="remove-image-btn" class="mt-2 text-sm text-red-600 hover:text-red-800">Remove Image</button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </form>
-        </div>
-
-        <div id="comments" class="app-view">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Manage Comments</h1>
-            
-            <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="text" id="search-comments" placeholder="Search comments or author..." class="md:col-span-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    
-                    <select id="filter-comment-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">All Statuses</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Spam">Spam</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="comments-list" class="space-y-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm text-center text-gray-500">Loading comments from Firebase...</div>
-            </div>
-        </div>
-
-        <div id="analytics" class="app-view">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Blog Analytics</h1>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500">Total Posts</p>
-                        <i data-lucide="file-text" class="w-5 h-5 text-indigo-500"></i>
-                    </div>
-                    <p id="stats-total-posts" class="text-3xl font-bold text-gray-800 mt-2">0</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500">Total Views</p>
-                        <i data-lucide="eye" class="w-5 h-5 text-green-500"></i>
-                    </div>
-                    <p id="stats-total-views" class="text-3xl font-bold text-gray-800 mt-2">0</L>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500">Pending Comments</p>
-                        <i data-lucide="messages-square" class="w-5 h-5 text-yellow-500"></i>
-                    </div>
-                    <p id="stats-total-comments" class="text-3xl font-bold text-gray-800 mt-2">0</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500">Published / Drafts</p>
-                        <i data-lucide="pie-chart" class="w-5 h-5 text-blue-500"></i>
-                    </div>
-                    <p id="stats-published-drafts" class="text-3xl font-bold text-gray-800 mt-2">0 / 0</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Popular Posts (by Views)</h2>
-                    <ul id="popular-posts-list" class="divide-y divide-gray-200">
-                        <li class="py-3 text-center text-gray-500">Loading data...</li>
-                    </ul>
-                </div>
-                
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Views Over Time (Mock)</h2>
-                    <div class="h-64 bg-gray-50 rounded-lg flex items-end justify-center p-4">
-                        <p class="text-gray-400 m-auto">Analytics chart would be loaded here.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <div id="delete-modal" class="modal">
-        <div class="modal-content bg-white p-8 rounded-lg shadow-2xl w-full max-w-md m-4">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="trash-2" class="w-8 h-8 text-red-600"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Delete Post</h2>
-                <p class="text-gray-600 mb-6">Are you sure you want to delete this post **and all its comments**? This action cannot be undone.</p>
-                <div class="flex justify-center gap-4">
-                    <button id="cancel-delete-btn" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium">Cancel</button>
-                    <button id="confirm-delete-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">Delete</button>
-                </div>
-            </div>
-        </div>
+<body>
+    <div class="text-center">
+        <button id="create-data-btn" class="btn bg-indigo-600 text-white hover:bg-indigo-700">
+            Create Sample Blog Data
+        </button>
+        <div id="log">Waiting to start...</div>
     </div>
-
-    <div id="reply-modal" class="modal">
-        <div class="modal-content bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg m-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Reply to Comment</h2>
-            <div class="mb-4 bg-gray-50 p-4 rounded-lg border">
-                <p class="text-sm font-medium text-gray-800" id="reply-author"></p>
-                <p class="text-sm text-gray-600 mt-1" id="reply-original-text"></p>
-            </div>
-            <form id="reply-form">
-                <input type="hidden" id="reply-comment-id">
-                <textarea id="reply-text" rows="4" placeholder="Write your reply..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
-                <div class="flex justify-end gap-4 mt-6">
-                    <button id="cancel-reply-btn" type="button" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium">Cancel</button>
-                    <button id="submit-reply-btn" type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Submit Reply</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div id="toast"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getFirestore, 
-            collection, 
-            getDocs, 
-            getDoc, 
-            addDoc, 
-            doc, 
-            updateDoc, 
-            deleteDoc, 
-            onSnapshot, 
-            serverTimestamp,
-            query,
-            where,
-            orderBy,
-            writeBatch,
-            Timestamp
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        // Note: Firebase Storage is not imported. We will mock file uploads.
-        
+        // --- THIS LINE IS FIXED ---
+        import { getFirestore, writeBatch, doc, serverTimestamp, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
         // --- PASTE YOUR FIREBASE CONFIG HERE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDuqswofpquk8aUbCOZCGjdYLUivBEh7a8",
@@ -446,709 +36,117 @@
         };
         // -----------------------------------------
 
-        // --- Firebase Init ---
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const postsCollection = collection(db, "blogPosts");
-        const commentsCollection = collection(db, "blogComments");
+        const log = document.getElementById('log');
+        const btn = document.getElementById('create-data-btn');
 
-        // --- Global State ---
-        let currentView = 'list-posts';
-        let editingPostId = null;
-        let postToDeleteId = null;
-        let commentToReplyId = null;
-        let allPosts = []; // Local cache for posts
-        let allComments = []; // Local cache for comments
-        let unsubscribePosts = () => {}; // Function to stop the posts listener
-        let unsubscribeComments = () => {}; // Function to stop the comments listener
-
-        // --- Lib Instances ---
-        let quill, tagify, schedulePicker;
-
-        // --- DOM Elements ---
-        const views = document.querySelectorAll('.app-view');
-        const sidebarLinks = document.querySelectorAll('.sidebar-link[data-view]');
-        const postsTableBody = document.getElementById('posts-table-body');
-        const postForm = document.getElementById('blog-post-form');
-        const postFormTitle = document.getElementById('form-title');
-        const postIdInput = document.getElementById('post-id');
-        const postTitleInput = document.getElementById('post-title');
-        const postStatusSelect = document.getElementById('post-status');
-        const scheduleDateWrapper = document.getElementById('schedule-date-wrapper');
-        const postCategorySelect = document.getElementById('post-category');
-        const imageDropzone = document.getElementById('image-dropzone');
-        const imageInput = document.getElementById('post-image');
-        const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
-        const imagePreview = document.getElementById('image-preview');
-        const removeImageBtn = document.getElementById('remove-image-btn');
-        const attachmentDropzone = document.getElementById('attachment-dropzone');
-        const attachmentInput = document.getElementById('post-attachments');
-        const attachmentList = document.getElementById('attachment-list');
-        const commentsListView = document.getElementById('comments-list');
-        const deleteModal = document.getElementById('delete-modal');
-        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-        const replyModal = document.getElementById('reply-modal');
-        const replyForm = document.getElementById('reply-form');
-        const cancelReplyBtn = document.getElementById('cancel-reply-btn');
-        const toast = document.getElementById('toast');
-        const selectAllCheckbox = document.getElementById('select-all-posts');
-
-        // =============================================
-        // Initialization
-        // =============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            initLibs();
-            setupEventListeners();
-            showView('list-posts'); // Start on the main page
-            lucide.createIcons();
-        });
-
-        function initLibs() {
-            quill = new Quill('#quill-editor', {
-                theme: 'snow',
-                modules: { toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    ['link', 'image', 'video', 'code-block'],
-                    ['clean']
-                ]}
-            });
-            
-            const tagsInput = document.getElementById('post-tags');
-            tagify = new Tagify(tagsInput);
-            
-            schedulePicker = flatpickr("#post-schedule-date", {
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-            });
-        }
-        
-        // =============================================
-        // Toast Notification Utility
-        // =============================================
-        function showToast(message, isError = false) {
-            toast.textContent = message;
-            toast.className = isError ? 'toast-error' : 'toast-success';
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        // =============================================
-        // Mock File Upload (!!! IMPORTANT !!!)
-        // This simulates an upload to Firebase Storage.
-        // In a real app, you would use getStorage() and uploadBytes().
-        // =============================================
-        async function mockUploadFile(file) {
-            showToast(`Simulating upload for ${file.name}...`);
-            // Wait 1.5 seconds to simulate upload time
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            const mockUrl = `https://mockstorage.com/${Date.now()}-${file.name}`;
-            showToast(`Upload complete for ${file.name}!`);
-            return { name: file.name, url: mockUrl };
-        }
-
-        // =============================================
-        // Navigation / View Switching
-        // =============================================
-        function showView(viewId) {
-            // Stop all active listeners
-            unsubscribePosts();
-            unsubscribeComments();
-
-            views.forEach(view => view.classList.remove('active'));
-            const newView = document.getElementById(viewId);
-            if (newView) {
-                newView.classList.add('active');
-            }
-
-            sidebarLinks.forEach(link => link.classList.remove('active'));
-            document.querySelector(`.sidebar-link[data-view="${viewId}"]`)?.classList.add('active');
-            
-            if (viewId === 'add-post') {
-                showPostForm(); // Special case for "Add New"
-            } else if (viewId === 'list-posts') {
-                initPostsListener();
-            } else if (viewId === 'comments') {
-                initPostsListener(); // Need posts data for comment context
-                initCommentsListener();
-            } else if (viewId === 'analytics') {
-                // For analytics, we just get the data once, no listener needed
-                fetchAllDataForAnalytics();
-            }
-        }
-
-        // =============================================
-        // Data Listeners
-        // =============================================
-        
-        function initPostsListener() {
-            unsubscribePosts = onSnapshot(query(postsCollection, orderBy("createdAt", "desc")), (snapshot) => {
-                allPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderPostsTable();
-            }, error => {
-                console.error("Error fetching posts: ", error);
-                showToast("Error fetching posts.", true);
-                postsTableBody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-500">Error loading posts.</td></tr>`;
-            });
-        }
-        
-        function initCommentsListener() {
-            unsubscribeComments = onSnapshot(query(commentsCollection, orderBy("date", "desc")), (snapshot) => {
-                allComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderCommentsList();
-            }, error => {
-                console.error("Error fetching comments: ", error);
-                showToast("Error fetching comments.", true);
-                commentsListView.innerHTML = `<div class="bg-white p-6 rounded-lg shadow-sm text-center text-red-500">Error loading comments.</div>`;
-            });
-        }
-        
-        async function fetchAllDataForAnalytics() {
-            // Get all posts
-            const postSnapshot = await getDocs(postsCollection);
-            allPosts = postSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Get all comments
-            const commentSnapshot = await getDocs(commentsCollection);
-            allComments = commentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            renderAnalytics();
-        }
-
-        // =============================================
-        // Render Functions (Dynamic)
-        // =============================================
-        function renderPostsTable() {
-            postsTableBody.innerHTML = ''; // Clear table
-            
-            const search = document.getElementById('search-posts').value.toLowerCase();
-            const category = document.getElementById('filter-category').value;
-            const status = document.getElementById('filter-status').value;
-
-            let filteredPosts = allPosts.filter(post => {
-                return (post.title.toLowerCase().includes(search) || (post.author || '').toLowerCase().includes(search)) &&
-                       (category === '' || post.category === category) &&
-                       (status === '' || post.status === status);
-            });
-            
-            if (filteredPosts.length === 0) {
-                postsTableBody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-gray-500">No posts found.</td></tr>`;
+        btn.onclick = async () => {
+            if (!confirm("Are you sure you want to add sample blog data? This will overwrite posts with IDs 'sample-post-1' and 'sample-post-2'.")) {
                 return;
             }
 
-            filteredPosts.forEach(post => {
-                const statusColors = {
-                    Published: "bg-green-100 text-green-800",
-                    Draft: "bg-yellow-100 text-yellow-800",
-                    Scheduled: "bg-blue-100 text-blue-800"
-                };
-                
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition-colors";
-                tr.innerHTML = `
-                    <td class="p-4"><input type="checkbox" class="post-checkbox" data-id="${post.id}"></td>
-                    <td class="p-4">
-                        <div class="font-medium text-gray-800">${post.title}</div>
-                        <div class="text-sm text-gray-500">${(post.tags || []).join(', ')}</div>
-                    </td>
-                    <td class="p-4 text-sm text-gray-600">${post.author || 'N/A'}</td>
-                    <td class="p-4 text-sm text-gray-600">${post.category || 'Uncategorized'}</td>
-                    <td class="p-4">
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${statusColors[post.status] || 'bg-gray-100 text-gray-800'}">
-                            ${post.status}
-                        </span>
-                    </td>
-                    <td class="p-4 text-sm text-gray-600">
-                        ${post.publishDate ? new Date(post.publishDate.toDate()).toLocaleDateString() : '—'}
-                    </td>
-                    <td class="p-4">
-                        <div class="flex space-x-2">
-                            <button class="edit-btn p-1 text-indigo-600 hover:text-indigo-900" data-id="${post.id}" title="Edit">
-                                <i data-lucide="edit-2" class="w-4 h-4"></i>
-                            </button>
-                            <button class="delete-btn p-1 text-red-600 hover:text-red-900" data-id="${post.id}" title="Delete">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                postsTableBody.appendChild(tr);
-            });
-
-            lucide.createIcons();
-            selectAllCheckbox.checked = false; // Uncheck "select all" on re-render
-        }
-
-        function renderCommentsList() {
-            commentsListView.innerHTML = ''; // Clear list
-            
-            const search = document.getElementById('search-comments').value.toLowerCase();
-            const status = document.getElementById('filter-comment-status').value;
-
-            let filteredComments = allComments.filter(comment => {
-                return (comment.author.toLowerCase().includes(search) || comment.text.toLowerCase().includes(search)) &&
-                       (status === '' || comment.status === status);
-            });
-            
-            if (filteredComments.length === 0) {
-                commentsListView.innerHTML = `<div class="bg-white p-6 rounded-lg shadow-sm text-center text-gray-500">No comments found.</div>`;
-                return;
-            }
-
-            filteredComments.forEach(comment => {
-                const post = allPosts.find(p => p.id === comment.postId);
-                const statusColors = {
-                    Approved: "border-green-500",
-                    Pending: "border-yellow-500",
-                    Spam: "border-red-500"
-                };
-
-                const div = document.createElement('div');
-                div.className = `bg-white rounded-lg shadow-sm border-l-4 ${statusColors[comment.status] || 'border-gray-300'}`;
-                div.innerHTML = `
-                    <div class="p-6">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="font-semibold text-gray-800">${comment.author} <span class="text-sm text-gray-500 font-normal">(${comment.email})</span></div>
-                                <div class="text-sm text-gray-500 mt-1">${comment.date ? new Date(comment.date.toDate()).toLocaleString() : 'No date'}</div>
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                On: <span class="text-indigo-600">${post ? post.title : 'Deleted Post'}</span>
-                            </div>
-                        </div>
-                        <p class="text-gray-700 my-4">${comment.text}</p>
-                        ${comment.reply ? `
-                            <div class="bg-gray-50 p-3 rounded-lg border ml-8">
-                                <p class="text-sm font-semibold text-gray-700">Reply from Admin:</p>
-                                <p class="text-sm text-gray-600 mt-1">${comment.reply}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="bg-gray-50 px-6 py-3 rounded-b-lg flex flex-wrap gap-2">
-                        ${comment.status !== 'Approved' ? `<button class="approve-comment-btn text-sm font-medium text-green-600 hover:text-green-800" data-id="${comment.id}"><i data-lucide="check" class="w-4 h-4 inline-block mr-1"></i> Approve</button>` : ''}
-                        ${comment.status === 'Approved' && !comment.reply ? `<button class="reply-comment-btn text-sm font-medium text-blue-600 hover:text-blue-800" data-id="${comment.id}"><i data-lucide="corner-up-left" class="w-4 h-4 inline-block mr-1"></i> Reply</button>` : ''}
-                        ${comment.status !== 'Spam' ? `<button class="spam-comment-btn text-sm font-medium text-yellow-600 hover:text-yellow-800" data-id="${comment.id}"><i data-lucide="shield-alert" class="w-4 h-4 inline-block mr-1"></i> Spam</button>` : ''}
-                        <button class="delete-comment-btn text-sm font-medium text-red-600 hover:text-red-800 ml-auto" data-id="${comment.id}"><i data-lucide="trash-2" class="w-4 h-4 inline-block mr-1"></i> Delete</button>
-                    </div>
-                `;
-                commentsListView.appendChild(div);
-            });
-            
-            lucide.createIcons();
-        }
-
-        function renderAnalytics() {
-            const totalPosts = allPosts.length;
-            const totalViews = allPosts.reduce((acc, post) => acc + (post.views || 0), 0);
-            const pendingComments = allComments.filter(c => c.status === 'Pending').length;
-            const publishedCount = allPosts.filter(p => p.status === 'Published').length;
-            const draftCount = allPosts.filter(p => p.status === 'Draft').length;
-
-            document.getElementById('stats-total-posts').textContent = totalPosts;
-            document.getElementById('stats-total-views').textContent = totalViews.toLocaleString();
-            document.getElementById('stats-total-comments').textContent = pendingComments;
-            document.getElementById('stats-published-drafts').textContent = `${publishedCount} / ${draftCount}`;
-
-            const popularList = document.getElementById('popular-posts-list');
-            popularList.innerHTML = '';
-            const popularPosts = [...allPosts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-            
-            if(popularPosts.length === 0) {
-                 popularList.innerHTML = `<li class="py-3 text-center text-gray-500">No data available</li>`;
-                 return;
-            }
-
-            popularPosts.forEach(post => {
-                const li = document.createElement('li');
-                li.className = "py-4 flex justify-between items-center";
-                li.innerHTML = `
-                    <span class="font-medium text-gray-800">${post.title}</span>
-                    <span class="text-sm text-gray-500">${(post.views || 0).toLocaleString()} views</span>
-                `;
-                popularList.appendChild(li);
-            });
-        }
-        
-        // =============================================
-        // Form Handling
-        // =============================================
-        async function showPostForm(postId = null) {
-            postForm.reset();
-            quill.setContents([]);
-            tagify.removeAllTags();
-            imagePreview.src = "#";
-            imagePreviewWrapper.classList.add('hidden');
-            attachmentList.innerHTML = '';
-            
-            if (postId) {
-                // Edit Mode
-                editingPostId = postId;
-                postFormTitle.textContent = "Edit Post";
-                
-                try {
-                    const postRef = doc(db, "blogPosts", postId);
-                    const postSnap = await getDoc(postRef);
-                    
-                    if (postSnap.exists()) {
-                        const post = postSnap.data();
-                        postIdInput.value = postSnap.id;
-                        postTitleInput.value = post.title;
-                        quill.setContents(post.content); // Load Delta
-                        postStatusSelect.value = post.status;
-                        postCategorySelect.value = post.category;
-                        if (post.tags) {
-                            tagify.loadOriginalValues(post.tags);
-                        }
-                        if (post.publishDate && post.status === 'Scheduled') {
-                            schedulePicker.setDate(post.publishDate.toDate(), true);
-                            scheduleDateWrapper.classList.remove('hidden');
-                        }
-                        if (post.featureImage) {
-                            imagePreview.src = post.featureImage;
-                            imagePreviewWrapper.classList.add('hidden');
-                        }
-                        (post.attachments || []).forEach(file => addAttachmentToList(file.name, file.url));
-                        
-                        // Load SEO fields
-                        document.getElementById('seo-title').value = post.seoTitle || '';
-                        document.getElementById('seo-description').value = post.seoDescription || '';
-                        document.getElementById('seo-keywords').value = post.seoKeywords || '';
-
-                    } else {
-                        showToast("Error: Post not found.", true);
-                        showView('list-posts');
-                    }
-                } catch (error) {
-                    console.error("Error loading post: ", error);
-                    showToast("Error loading post data.", true);
-                }
-                
-            } else {
-                // Add Mode
-                editingPostId = null;
-                postFormTitle.textContent = "Add New Post";
-            }
-            showView('post-form');
-        }
-
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const publishBtn = document.getElementById('publish-btn');
-            publishBtn.disabled = true;
-            publishBtn.textContent = "Saving...";
-            
-            const title = postTitleInput.value;
-            const status = postStatusSelect.value;
-            if (!title) {
-                showToast("Please enter a title.", true);
-                publishBtn.disabled = false;
-                publishBtn.textContent = "Publish";
-                return;
-            }
-            
-            // Get data from form
-            let publishDate = null;
-            if (status === 'Scheduled') {
-                if (schedulePicker.selectedDates[0]) {
-                    publishDate = Timestamp.fromDate(schedulePicker.selectedDates[0]);
-                } else {
-                    showToast("Please select a schedule date.", true);
-                    publishBtn.disabled = false;
-                    publishBtn.textContent = "Publish";
-                    return;
-                }
-            } else if (status === 'Published') {
-                publishDate = serverTimestamp(); // Set publish date now
-            }
-            
-            const postData = {
-                title: title,
-                content: quill.getContents(), // Save the Quill Delta object
-                status: status,
-                category: postCategorySelect.value,
-                tags: tagify.value.map(tag => tag.value),
-                publishDate: publishDate,
-                featureImage: imagePreview.src.startsWith('http') ? imagePreview.src : null,
-                attachments: Array.from(attachmentList.children).map(item => ({
-                    name: item.dataset.name,
-                    url: item.dataset.url
-                })),
-                // SEO
-                seoTitle: document.getElementById('seo-title').value,
-                seoDescription: document.getElementById('seo-description').value,
-                seoKeywords: document.getElementById('seo-keywords').value,
-                // Timestamps & Stats
-                modifiedAt: serverTimestamp()
-            };
+            btn.disabled = true;
+            btn.textContent = "Working...";
+            log.innerHTML = "Starting batch write...<br>";
 
             try {
-                if (editingPostId) {
-                    // Update existing post
-                    const postRef = doc(db, "blogPosts", editingPostId);
-                    await updateDoc(postRef, postData);
-                    showToast("Post updated successfully!");
-                } else {
-                    // Add new post
-                    postData.createdAt = serverTimestamp();
-                    postData.author = "Admin"; // Hardcode author for new posts
-                    postData.views = 0;
-                    postData.commentsCount = 0;
-                    await addDoc(postsCollection, postData);
-                    showToast("Post created successfully!");
-                }
+                const batch = writeBatch(db);
+
+                // --- Post 1 ---
+                const post1Ref = doc(db, "blogPosts", "sample-post-1");
+                batch.set(post1Ref, {
+                    title: "Getting Started with Firebase",
+                    author: "Admin",
+                    category: "Technology",
+                    tags: ["firebase", "frontend", "database"],
+                    status: "Published",
+                    publishDate: serverTimestamp(),
+                    content: { ops: [
+                        { insert: "Firebase is a powerful platform." },
+                        { attributes: { header: 1 }, insert: "\nWhat is Firestore?" },
+                        { insert: "\nIt's a NoSQL document database that lets you easily store, sync, and query data for your mobile and web apps.\n" }
+                    ]},
+                    featureImage: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=60",
+                    attachments: [],
+                    views: 1520,
+                    commentsCount: 2,
+                    createdAt: serverTimestamp()
+                });
+                log.innerHTML += "Added Post 1 to batch.<br>";
+
+                // --- Post 2 ---
+                const post2Ref = doc(db, "blogPosts", "sample-post-2");
+                batch.set(post2Ref, {
+                    title: "My Favorite JavaScript Frameworks",
+                    author: "Jane Doe",
+                    category: "Guides",
+                    tags: ["javascript", "react", "vue"],
+                    status: "Draft",
+                    publishDate: null,
+                    content: { ops: [{ insert: "React, Vue, and Svelte are all great options..." }] },
+                    featureImage: null,
+                    attachments: [
+                        { name: "framework-comparison.pdf", url: "https://mockstorage.com/framework-comparison.pdf" }
+                    ],
+                    views: 0,
+                    commentsCount: 0,
+                    createdAt: serverTimestamp()
+                });
+                log.innerHTML += "Added Post 2 to batch.<br>";
+
+                // --- Comments for Post 1 ---
+                const comment1Ref = doc(collection(db, "blogComments"));
+                batch.set(comment1Ref, {
+                    postId: "sample-post-1",
+                    author: "CodeNewbie",
+                    email: "newbie@test.com",
+                    date: serverTimestamp(),
+                    text: "Great article! This really helped me understand Firestore.",
+                    status: "Approved",
+                    reply: null
+                });
+                log.innerHTML += "Added Comment 1 to batch.<br>";
                 
-                editingPostId = null;
-                showView('list-posts');
-                
+                const comment2Ref = doc(collection(db, "blogComments"));
+                batch.set(comment2Ref, {
+                    postId: "sample-post-1",
+                    author: "CSS_Master",
+                    email: "master@test.com",
+                    date: serverTimestamp(),
+                    text: "I still prefer SQL databases. This NoSQL stuff is confusing.",
+                    status: "Pending",
+                    reply: null
+                });
+                log.innerHTML += "Added Comment 2 to batch.<br>";
+
+                const comment3Ref = doc(collection(db, "blogComments"));
+                batch.set(comment3Ref, {
+                    postId: "sample-post-1",
+                    author: "SPAM_BOT_9000",
+                    email: "spam@bot.com",
+                    date: serverTimestamp(),
+                    text: "Buy my amazing crypto course now!!! www.notascam.com",
+                    status: "Spam",
+                    reply: null
+                });
+                log.innerHTML += "Added Comment 3 to batch.<br>";
+
+                // Commit the batch
+                await batch.commit();
+
+                log.innerHTML += "<br><strong>SUCCESS!</strong><br>Sample data has been written to your Firebase project.<br>You can now open the main admin page.";
+                btn.textContent = "Data Created!";
+                btn.classList.remove("bg-indigo-600");
+                btn.classList.add("bg-green-600");
+
             } catch (error) {
-                console.error("Error saving post: ", error);
-                showToast(`Error saving post: ${error.message}`, true);
-            } finally {
-                publishBtn.disabled = false;
-                publishBtn.textContent = "Publish";
+                console.error("Error writing sample data: ", error);
+                log.innerHTML += `<br><strong style="color: red;">ERROR:</strong> ${error.message}`;
+                btn.textContent = "Failed!";
+                btn.disabled = false;
             }
-        }
-
-        // =============================================
-        // File / Image Handling
-        // =============================================
-        async function handleImageUpload(file) {
-            if (file) {
-                const { url } = await mockUploadFile(file); // MOCK UPLOAD
-                imagePreview.src = url; // Use mock URL
-                imagePreviewWrapper.classList.remove('hidden');
-            }
-        }
-        
-        function addAttachmentToList(fileName, fileUrl) {
-            const div = document.createElement('div');
-            div.className = "flex items-center justify-between bg-gray-100 p-2 rounded-lg";
-            div.dataset.name = fileName;
-            div.dataset.url = fileUrl;
-            div.innerHTML = `
-                <div class="flex items-center">
-                    <i data-lucide="file-text" class="w-4 h-4 text-gray-500 mr-2"></i>
-                    <span class="text-sm font-medium text-gray-700">${fileName}</span>
-                </div>
-                <div>
-                    <button type="button" class="remove-attachment-btn text-sm text-red-600 hover:text-red-800">&times; Remove</button>
-                </div>
-            `;
-            attachmentList.appendChild(div);
-            lucide.createIcons();
-            
-            div.querySelector('.remove-attachment-btn').addEventListener('click', () => {
-                div.remove();
-            });
-        }
-        
-        async function handleAttachmentUpload(files) {
-            for (const file of files) {
-                const { name, url } = await mockUploadFile(file); // MOCK UPLOAD
-                addAttachmentToList(name, url);
-            }
-        }
-        
-        // =============================================
-        // Delete / Comment Logic (Dynamic)
-        // =============================================
-        function showDeleteModal(postId) {
-            postToDeleteId = postId;
-            deleteModal.classList.add('open');
-        }
-        
-        async function confirmDelete() {
-            if (postToDeleteId) {
-                confirmDeleteBtn.disabled = true;
-                confirmDeleteBtn.textContent = "Deleting...";
-                try {
-                    const batch = writeBatch(db);
-                    
-                    // 1. Delete the post itself
-                    const postRef = doc(db, "blogPosts", postToDeleteId);
-                    batch.delete(postRef);
-                    
-                    // 2. Find and delete all comments for that post
-                    const q = query(commentsCollection, where("postId", "==", postToDeleteId));
-                    const commentsSnapshot = await getDocs(q);
-                    commentsSnapshot.forEach(doc => {
-                        batch.delete(doc.ref);
-                    });
-                    
-                    // 3. Commit the batch
-                    await batch.commit();
-                    
-                    showToast("Post and all its comments deleted!");
-                    
-                } catch (error) {
-                    console.error("Error deleting post: ", error);
-                    showToast(`Error deleting post: ${error.message}`, true);
-                } finally {
-                    postToDeleteId = null;
-                    deleteModal.classList.remove('open');
-                    confirmDeleteBtn.disabled = false;
-                    confirmDeleteBtn.textContent = "Delete";
-                }
-            }
-        }
-        
-        async function updateCommentStatus(commentId, newStatus) {
-            try {
-                const commentRef = doc(db, "blogComments", commentId);
-                await updateDoc(commentRef, {
-                    status: newStatus
-                });
-                showToast(`Comment status updated to ${newStatus}.`);
-                // The onSnapshot listener will handle the re-render
-            } catch (error) {
-                console.error("Error updating comment: ", error);
-                showToast("Error updating comment status.", true);
-            }
-        }
-        
-        async function deleteComment(commentId) {
-            if (confirm("Are you sure you want to delete this comment?")) {
-                try {
-                    const commentRef = doc(db, "blogComments", commentId);
-                    await deleteDoc(commentRef);
-                    showToast("Comment deleted.");
-                } catch (error) {
-                    console.error("Error deleting comment: ", error);
-                    showToast("Error deleting comment.", true);
-                }
-            }
-        }
-
-        function showReplyModal(commentId) {
-            const comment = allComments.find(c => c.id === commentId);
-            if (comment) {
-                commentToReplyId = commentId;
-                document.getElementById('reply-author').textContent = `Replying to: ${comment.author}`;
-                document.getElementById('reply-original-text').textContent = `"${comment.text}"`;
-                replyForm.reset();
-                replyModal.classList.add('open');
-            }
-        }
-        
-        async function handleReplySubmit(e) {
-            e.preventDefault();
-            const replyBtn = document.getElementById('submit-reply-btn');
-            replyBtn.disabled = true;
-            replyBtn.textContent = "Submitting...";
-
-            const replyText = document.getElementById('reply-text').value;
-            if (commentToReplyId && replyText) {
-                try {
-                    const commentRef = doc(db, "blogComments", commentToReplyId);
-                    await updateDoc(commentRef, {
-                        reply: replyText
-                    });
-                    showToast("Reply submitted!");
-                    replyModal.classList.remove('open');
-                } catch (error) {
-                    console.error("Error submitting reply: ", error);
-                    showToast("Error submitting reply.", true);
-                } finally {
-                    commentToReplyId = null;
-                    replyBtn.disabled = false;
-                    replyBtn.textContent = "Submit Reply";
-                }
-            }
-        }
-
-        // =============================================
-        // Event Listeners
-        // =============================================
-        function setupEventListeners() {
-            // Sidebar Navigation
-            sidebarLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showView(link.dataset.view);
-                });
-            });
-
-            // "Add New" Button
-            document.getElementById('add-new-post-btn-main').addEventListener('click', () => showView('add-post'));
-
-            // List View Filters
-            document.getElementById('search-posts').addEventListener('input', renderPostsTable);
-            document.getElementById('filter-category').addEventListener('change', renderPostsTable);
-            document.getElementById('filter-status').addEventListener('change', renderPostsTable);
-
-            // Select All Checkbox
-            selectAllCheckbox.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                postsTableBody.querySelectorAll('.post-checkbox').forEach(checkbox => {
-                    checkbox.checked = isChecked;
-                });
-            });
-
-            // List View Table Actions (Event Delegation)
-            postsTableBody.addEventListener('click', e => {
-                const editBtn = e.target.closest('.edit-btn');
-                const deleteBtn = e.target.closest('.delete-btn');
-                if (editBtn) {
-                    const id = editBtn.dataset.id;
-                    showPostForm(id);
-                }
-                if (deleteBtn) {
-                    const id = deleteBtn.dataset.id;
-                    showDeleteModal(id);
-                }
-            });
-            
-            // Delete Modal
-            confirmDeleteBtn.addEventListener('click', confirmDelete);
-            cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.remove('open'));
-            
-            // Post Form
-            postForm.addEventListener('submit', handleFormSubmit);
-            document.getElementById('save-draft-btn').addEventListener('click', () => {
-                postStatusSelect.value = "Draft";
-                handleFormSubmit(new Event('submit'));
-            });
-            postStatusSelect.addEventListener('change', e => {
-                scheduleDateWrapper.classList.toggle('hidden', e.target.value !== 'Scheduled');
-            });
-            
-            // Image Upload
-            imageDropzone.addEventListener('click', () => imageInput.click());
-            imageInput.addEventListener('change', e => handleImageUpload(e.target.files[0]));
-            removeImageBtn.addEventListener('click', () => {
-                imageInput.value = '';
-                imagePreview.src = '#';
-                imagePreviewWrapper.classList.add('hidden');
-            });
-            
-            // Attachment Upload
-            attachmentDropzone.addEventListener('click', () => attachmentInput.click());
-            attachmentInput.addEventListener('change', e => handleAttachmentUpload(e.target.files));
-
-            // Comments View Filters
-            document.getElementById('search-comments').addEventListener('input', renderCommentsList);
-            document.getElementById('filter-comment-status').addEventListener('change', renderCommentsList);
-            
-            // Comments List Actions (Event Delegation)
-            commentsListView.addEventListener('click', e => {
-                const target = e.target.closest('button');
-                if (!target) return;
-                const id = target.dataset.id;
-                if (target.classList.contains('approve-comment-btn')) updateCommentStatus(id, 'Approved');
-                if (target.classList.contains('spam-comment-btn')) updateCommentStatus(id, 'Spam');
-                if (target.classList.contains('delete-comment-btn')) deleteComment(id);
-                if (target.classList.contains('reply-comment-btn')) showReplyModal(id);
-            });
-            
-            // Reply Modal
-            replyForm.addEventListener('submit', handleReplySubmit);
-            cancelReplyBtn.addEventListener('click', () => replyModal.classList.remove('open'));
-        }
-
+        };
     </script>
 </body>
 </html>
