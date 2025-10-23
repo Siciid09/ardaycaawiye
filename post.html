@@ -348,17 +348,7 @@
             });
         }
 
-        // --- Quill Content to HTML Renderer ---
-        function renderQuillContent(contentString) {
-            try {
-                const ops = JSON.parse(contentString).ops;
-                const converter = new QuillDeltaToHtmlConverter(ops, {});
-                return converter.convert(); 
-            } catch (e) {
-                console.error("Error parsing Quill content:", e);
-                return "<p>Error displaying post content.</p>";
-            }
-        }
+        // --- **FIX**: Moved QuillDeltaToHtmlConverter class definition *before* it is used ---
         
         // This is a basic Delta to HTML converter. A more robust library might be needed for full features.
         class QuillDeltaToHtmlConverter {
@@ -431,7 +421,19 @@
                 return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
         }
-
+        
+        // --- Quill Content to HTML Renderer ---
+        function renderQuillContent(contentString) {
+            try {
+                const ops = JSON.parse(contentString).ops;
+                const converter = new QuillDeltaToHtmlConverter(ops, {});
+                return converter.convert(); 
+            } catch (e) {
+                console.error("Error parsing Quill content:", e);
+                return "<p>Error displaying post content.</p>";
+            }
+        }
+        
         // --- Main Data Loading Function ---
         async function loadPost(id) {
             currentPostId = id;
@@ -642,3 +644,4 @@
 
 </body>
 </html>
+
